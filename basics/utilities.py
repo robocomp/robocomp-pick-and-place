@@ -19,25 +19,31 @@ def set_observation_space(observation):
     # print(type(observation))
     global n_shapes 
     n_shapes = 0
-    observation_space, n_actions = __convert_observation_to_space(observation)
-    print(len(observation_space))
+    observation_space = __convert_observation_to_space(observation)
+    # print("Len of obs space:",len(observation_space))
+    # print("#actions:", n_shapes)
     n = 100 ^ n_shapes
+    # print("Obs space:", observation_space)
     return observation_space, n
 
 def __convert_observation_to_space(observation):
     print(observation)
     global n_shapes
     
+    # print("obs type:",type(observation))
     time.sleep(0.5)
     if isinstance(observation, dict):
-        space = spaces.Dict(
-            OrderedDict(
-                [
-                    (key, __convert_observation_to_space(value))
-                    for key, value in observation.items()
-                ]
-            )
-        )
+        # space = spaces.Dict(
+        #     OrderedDict(
+        #         [
+        #             (key, __convert_observation_to_space(value))
+        #             for key, value in observation.items()
+        #         ]
+        #     )
+        # )
+
+        space = spaces.Box(low=-50*np.ones((2,)),high=50*np.ones((2,)),dtype=np.float32)
+        n_shapes = 2
     elif isinstance(observation, np.ndarray):
         low = np.full(observation.shape, -1.0, dtype=np.float32)
         high = np.full(observation.shape, 1.0, dtype=np.float32)
@@ -51,6 +57,7 @@ def __convert_observation_to_space(observation):
     else:
         raise NotImplementedError(type(observation), observation)
 
+    # print("obs space type:",space, type(space))
     return space
 
 def state2index(observ):
@@ -58,10 +65,13 @@ def state2index(observ):
        IN:  obs -> distX, distY [-2, 2]
        OUT: index [101, 10100] '''
 
-    x = (observ["distX"] + 2) * 25 * 100   # Map to [100, 10000]
-    y = (observ["distY"] + 2) * 25         # Map to [1, 100]
+    # x = (observ["distX"] + 2) * 25 * 100   # Map to [100, 10000]
+    # y = (observ["distY"] + 2) * 25         # Map to [1, 100]
     
-    print("STATE2INDEX", observ, x, y)
+    x = (observ[0] + 2) * 25 * 100   # Map to [100, 10000]
+    y = (observ[1] + 2) * 25         # Map to [1, 100]
+
+    # print("STATE2INDEX", observ, x, y)
     return int(x + y)
 
 def action2index(action):
@@ -76,8 +86,11 @@ def actionFromAlg(state):
     '''Returns an action based on an algorithmic model'''
     action = []
 
-    action.append(0 if abs(state["distX"]) < 0.001 else 1 if state["distX"] > 0.001 else -1)
-    action.append(0 if abs(state["distY"]) < 0.001 else 1 if state["distY"] > 0.001 else -1)
+    # action.append(0 if abs(state["distX"]) < 0.001 else 1 if state["distX"] > 0.001 else -1)
+    # action.append(0 if abs(state["distY"]) < 0.001 else 1 if state["distY"] > 0.001 else -1)
+
+    action.append(0 if abs(state[0]) < 0.001 else 1 if state[0] > 0.001 else -1)
+    action.append(0 if abs(state[1]) < 0.001 else 1 if state[1] > 0.001 else -1)
 
     print("ACTIONFROMALG", state, action)
 
