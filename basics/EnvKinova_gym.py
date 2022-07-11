@@ -3,7 +3,7 @@ from gym import spaces
 import utilities as U
 import numpy as np
 from numpy import linalg as LA
-sys.path.append('/home/robocomp/software/CoppeliaSim_Edu_V4_3_0_Ubuntu20_04/programming/zmqRemoteApi/clients/python')
+sys.path.append('/home/robocomp/software/CoppeliaSim_Edu_V4_3_0_rev10_Ubuntu20_04/programming/zmqRemoteApi/clients/python')
 from zmqRemoteApi import RemoteAPIClient
 
 class EnvKinova_gym(gym.Env):
