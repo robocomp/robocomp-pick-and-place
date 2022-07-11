@@ -19,14 +19,23 @@ def set_observation_space(observation):
     # print(type(observation))
     global n_shapes 
     n_shapes = 0
+    
+    #Need Clarification
+    #this _convert_.... function returns only one value: observation space
+
     observation_space, n_actions = __convert_observation_to_space(observation)
     print(len(observation_space))
+    
+
     n = 100 ^ n_shapes
     return observation_space, n
 
 def __convert_observation_to_space(observation):
     print(observation)
     global n_shapes
+    
+    #Need Clarification
+    #why sleep?
     
     time.sleep(0.5)
     if isinstance(observation, dict):
@@ -38,6 +47,10 @@ def __convert_observation_to_space(observation):
                 ]
             )
         )
+
+    #Need Clarification
+    #why nd array check, when the observation type is already know as float or dict?
+
     elif isinstance(observation, np.ndarray):
         low = np.full(observation.shape, -1.0, dtype=np.float32)
         high = np.full(observation.shape, 1.0, dtype=np.float32)

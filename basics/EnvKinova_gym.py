@@ -3,7 +3,7 @@ from gym import spaces
 import utilities as U
 import numpy as np
 from numpy import linalg as LA
-sys.path.append('/home/robocomp/software/CoppeliaSim_Edu_V4_3_0_Ubuntu20_04/programming/zmqRemoteApi/clients/python')
+sys.path.append('/home/robocomp/software/CoppeliaSim_Edu_V4_3_0_rev10_Ubuntu20_04/programming/zmqRemoteApi/clients/python')
 from zmqRemoteApi import RemoteAPIClient
 
 class EnvKinova_gym(gym.Env):
@@ -32,27 +32,29 @@ class EnvKinova_gym(gym.Env):
         time.sleep(1)
 
         # SPACES
-        self.action_space = U.set_action_space()
-        #print("-------ACTION SPACE", self.action_space)
-        action = self.action_space.sample()
-        #print("-------ACTION", action)
-        observation, _, done, _ = self.step(action)
-        assert not done
-        self.observation_space, self.n = U.set_observation_space(observation)
+        self.action_space = spaces.Discrete(9)
+        self.observation_space = spaces.Box(low=-50*np.ones((2,)),high=50*np.ones((2,)),dtype=np.float64)
+        # self.n = (self.observation_space[0].high)^(self.observation_space.n)
+        self.n=100^2
+        
         self.goal = [0, 0]
 
     def step(self, action):
-        print("ACTION", action)
-        sim_act = [int(action[0]), int(action[1]), 0, 0, 0]
+        # print(f"Pre: {action}")
+        ac1, ac2 = self.__get_action(action)
+        # print(f"Action:{ac1},{ac2}")
+
+        sim_act = [ac1, ac2, 0, 0, 0]
         
         if self.__interpretate_action(sim_act):
             self.sim.callScriptFunction("do_step@gen3", 1, sim_act)
         else:
-            #print("INCORRECT ACTION: values not in [-1, 0, 1]")
+            print("INCORRECT ACTION: values not in [-1, 0, 1]")
             return None
 
         observation = self.__observate()
-        #print("OBSERVATION IN STEP", observation)
+
+        
         exit, reward, arrival, far, dist = self.__reward_and_or_exit(observation)
         self.current_step += 1
         
@@ -70,7 +72,7 @@ class EnvKinova_gym(gym.Env):
 
         self.current_step = 0
         obs = self.__observate()
-        print(obs)
+        # print(obs)
         return obs
 
     def close(self):
@@ -88,11 +90,12 @@ class EnvKinova_gym(gym.Env):
     def __observate(self):
         obs = {"pos": [[0, 0, 0]]}
         obs = self.sim.callScriptFunction("get_observation@gen3", 1) 
-        return {"distX":obs["dist_x"], "distY":obs["dist_y"]}
+        # return {"distX":obs["dist_x"], "distY":obs["dist_y"]}
+        return np.array([obs["dist_x"], obs["dist_y"]])
 
     def __reward_and_or_exit(self, observation):
         exit, reward, arrival, far = False, 0, 0, 0
-        dist = math.sqrt(observation["distX"]**2 + observation["distY"]**2)
+        dist = math.sqrt(observation[0]**2 + observation[1]**2)
 
         if dist > 0.1:
             exit = True
@@ -117,5 +120,7 @@ class EnvKinova_gym(gym.Env):
     def __normalize(self, x, min_val, max_val):
         return (x - min_val) / (max_val + min_val)
 
-
-    
+    def __get_action(self, action):
+        x = action // 3
+        y = action % 3
+        return int(x-1), int(y-1)   
