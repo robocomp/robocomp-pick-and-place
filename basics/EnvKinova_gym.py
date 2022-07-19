@@ -1,6 +1,6 @@
 import gym, sys, time, math
 from gym import spaces
-import utilities as U
+import spaces as spcs
 import numpy as np
 from numpy import linalg as LA
 sys.path.append('/home/robocomp/software/CoppeliaSim_Edu_V4_3_0_Ubuntu20_04/programming/zmqRemoteApi/clients/python')
@@ -13,7 +13,7 @@ class EnvKinova_gym(gym.Env):
     #################################
     def __init__(self):
         super(EnvKinova_gym, self).__init__()
-        print('Program started')
+        print('Loading environment')
         
         # API CLIENT
         self.client = RemoteAPIClient()
@@ -32,17 +32,17 @@ class EnvKinova_gym(gym.Env):
         time.sleep(1)
 
         # SPACES
-        self.action_space = U.set_action_space()
+        self.action_space = spcs.set_action_space()
         #print("-------ACTION SPACE", self.action_space)
         action = self.action_space.sample()
         #print("-------ACTION", action)
         observation, _, done, _ = self.step(action)
         assert not done
-        self.observation_space, self.n = U.set_observation_space(observation)
+        self.observation_space, self.n = spcs.set_observation_space(observation)
         self.goal = [0, 0]
 
     def step(self, action):
-        print("ACTION", action)
+        # print("ACTION", action)
         sim_act = [int(action[0]), int(action[1]), 0, 0, 0]
         
         if self.__interpretate_action(sim_act):
@@ -70,7 +70,6 @@ class EnvKinova_gym(gym.Env):
 
         self.current_step = 0
         obs = self.__observate()
-        print(obs)
         return obs
 
     def close(self):
@@ -88,11 +87,12 @@ class EnvKinova_gym(gym.Env):
     def __observate(self):
         obs = {"pos": [[0, 0, 0]]}
         obs = self.sim.callScriptFunction("get_observation@gen3", 1) 
+        return obs
         return {"distX":obs["dist_x"], "distY":obs["dist_y"]}
 
     def __reward_and_or_exit(self, observation):
         exit, reward, arrival, far = False, 0, 0, 0
-        dist = math.sqrt(observation["distX"]**2 + observation["distY"]**2)
+        dist = math.sqrt(observation["dist_x"]**2 + observation["dist_y"]**2)
 
         if dist > 0.1:
             exit = True
