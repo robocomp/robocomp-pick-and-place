@@ -42,7 +42,7 @@ class EnvKinova_gym(gym.Env):
         self.goal = [0, 0]
 
     def step(self, action):
-        # print("ACTION", action)
+        print("step() --> ACTION:", action)
         sim_act = [int(action[0]), int(action[1]), 0, 0, 0]
         
         if self.__interpretate_action(sim_act):
@@ -87,12 +87,14 @@ class EnvKinova_gym(gym.Env):
     def __observate(self):
         obs = {"pos": [[0, 0, 0]]}
         obs = self.sim.callScriptFunction("get_observation@gen3", 1) 
-        return obs
-        return {"distX":obs["dist_x"], "distY":obs["dist_y"]}
+        # return obs
+        # return {"dist_x": obs["dist_x"], "dist_y": obs["dist_y"]}
+        return np.array([obs["dist_x"], obs["dist_y"]])
+
 
     def __reward_and_or_exit(self, observation):
         exit, reward, arrival, far = False, 0, 0, 0
-        dist = math.sqrt(observation["dist_x"]**2 + observation["dist_y"]**2)
+        dist = math.sqrt(observation[0] ** 2 + observation[1] ** 2)
 
         if dist > 0.1:
             exit = True
