@@ -31,17 +31,18 @@ class EnvKinova_gym(gym.GoalEnv):
         time.sleep(1)
 
         # SPACES
-        self.action_space = spaces.Discrete(9)
+        self.action_space = spaces.Discrete(243)
         self.observation_space = spaces.Dict({
             "observation":spaces.Box(low=-50*np.ones((2,)),high=50*np.ones((2,)),dtype=np.float64),
             "achieved_goal": spaces.Box(low=-50*np.ones((2,)),high=50*np.ones((2,)),dtype=np.float64),
             "desired_goal":spaces.Box(low=-50*np.ones((2,)),high=50*np.ones((2,)),dtype=np.float64)
         })
+
+        self.dist = 0
         self.n=100^2
 
     def step(self, action):
-        ac1, ac2 = self.__get_action(action)
-        sim_act = [int(ac1), int(ac2), 0, 0, 0]
+        sim_act = self.__get_action(action)
         
         if self.__interpretate_action(sim_act):
             self.sim.callScriptFunction("do_step@gen3", 1, sim_act)
@@ -50,80 +51,60 @@ class EnvKinova_gym(gym.GoalEnv):
             return None
 
         observation = self.__observate()
+        reward = self.compute_reward(observation['achieved_goal'], observation['desired_goal'],None)
+        done = self._terminate()
 
-        exit, reward, _  = self.__reward_and_or_exit()
         self.current_step += 1
-        
         info = {}
-
-        return observation, reward, exit, info
+        return observation, reward, done, info
 
     def compute_reward(self,achieved_goal, desired_goal, info):
-        
-        dist = math.sqrt((achieved_goal[0]-desired_goal[0])**2 + (achieved_goal[1]-desired_goal[1])**2)
-
+        dist = np.sqrt(np.square(achieved_goal-desired_goal).sum())
+        self.dist=dist
         if dist < 0.005:
             reward=0
         else:
             reward=-1
-
+        
         return reward
 
     def reset(self):
-        #print("RESET", "STEP:", self.current_step)
         self.goal = self.sim.callScriptFunction("reset@gen3", 1) 
-        self.observation_space["desired_goal"] = self.goal
-
+        self.goal = np.array([0.0,0.0])
+        print("Goal:",self.goal)
         self.current_step = 0
         obs = self.__observate()
-
-        self.observation_space["desired_goal"] = self.goal
-        self.observation_space["achieved_goal"] = obs
-    
-        return 
+        
+        return obs
 
     def close(self):
         self.sim.stopSimulation()
         self.sim.setInt32Param(self.sim.intparam_idle_fps, self.defaultIdleFps)
         print('Program ended')
 
-    ####################################
-    ## -- PRIVATE AUXILIAR METHODS -- ##
-    ####################################
+    def _terminate(self):
+        if self.dist<0.005 or self.dist>0.1:
+            return True
+        return False
+
+    def __get_action(self, action):
+        act_str = np.base_repr(action,base=3)
+        act_str = list('0'*(5-len(act_str)) + act_str)
+        ac = [int(act_str[i])-1 for i in range(5)]
+        return ac
 
     def __interpretate_action(self, action):
         return all(list(map(lambda x: x in self.possible_values, action)))
 
     def __observate(self):
-        obs = {"pos": [[0, 0, 0]]}
         obs = self.sim.callScriptFunction("get_observation@gen3", 1) 
-        # return {"distX":obs["dist_x"], "distY":obs["dist_y"]}
-        return np.array([obs["dist_x"], obs["dist_y"]])
-
-    def __reward_and_or_exit(self):
-        exit, reward, arrival, far = False, 0, 0, 0
-
-        achieved_goal = self.observation_space["achieved_goal"]
-        desired_goal = self.observation_space["desired_goal"]
-
-        dist = math.sqrt((achieved_goal[0]-desired_goal[0])**2 + (achieved_goal[1]-desired_goal[1])**2)
-        reward =self.compute_reward(achieved_goal, desired_goal, None)
-        if dist > 0.1 or dist <0.005:
-            exit = True
-
-        return exit, reward, None
-
-        ''' SIMPIFIED VERSION
-        Goes away:           True, -1
-        Reaches the target:  True,  1
-        Else:                False, 0 '''
-    
-    
+        obs = np.array([obs["dist_y"],obs["dist_x"]])
+       
+        observ={}
+        observ["observation"] = obs
+        observ["desired_goal"] = self.goal
+        observ["achieved_goal"] = np.array([obs[-2],obs[-1]])
+        return observ
 
     def __normalize(self, x, min_val, max_val):
         return (x - min_val) / (max_val + min_val)
-
-    def __get_action(self, action):
-        x = action // 3
-        y = action % 3
-        return int(x-1), int(y-1)   

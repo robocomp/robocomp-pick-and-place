@@ -1,6 +1,5 @@
 import numpy as np
 from EnvKinova_gym import EnvKinova_gym
-import utilities as U
 import time
 
 env = EnvKinova_gym()
