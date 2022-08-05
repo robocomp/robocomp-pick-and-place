@@ -33,7 +33,7 @@ class EnvKinova_gym(gym.GoalEnv):
         # SPACES
         self.action_space = spaces.Discrete(243)
         self.observation_space = spaces.Dict({
-            "observation":spaces.Box(low=-50*np.ones((2,)),high=50*np.ones((2,)),dtype=np.float64),
+            "observation":spaces.Box(low=-50*np.ones((17,)),high=50*np.ones((17,)),dtype=np.float64),
             "achieved_goal": spaces.Box(low=-50*np.ones((2,)),high=50*np.ones((2,)),dtype=np.float64),
             "desired_goal":spaces.Box(low=-50*np.ones((2,)),high=50*np.ones((2,)),dtype=np.float64)
         })
@@ -61,17 +61,19 @@ class EnvKinova_gym(gym.GoalEnv):
     def compute_reward(self,achieved_goal, desired_goal, info):
         dist = np.sqrt(np.square(achieved_goal-desired_goal).sum())
         self.dist=dist
-        if dist < 0.005:
-            reward=0
+        if dist>0.05:
+            reward=-1000
+        elif dist < 0.005:
+            reward=1000
         else:
-            reward=-1
+            reward= (1 - self.__normalize(dist, 0, 1)) * 10
         
         return reward
 
     def reset(self):
         self.goal = self.sim.callScriptFunction("reset@gen3", 1) 
         self.goal = np.array([0.0,0.0])
-        print("Goal:",self.goal)
+        # print("Goal:",self.goal)
         self.current_step = 0
         obs = self.__observate()
         
@@ -98,13 +100,33 @@ class EnvKinova_gym(gym.GoalEnv):
 
     def __observate(self):
         obs = self.sim.callScriptFunction("get_observation@gen3", 1) 
-        obs = np.array([obs["dist_y"],obs["dist_x"]])
-       
+        # print("obs:")
+        # print(obs)
+        obs = self.__process_obs(obs)
+
         observ={}
         observ["observation"] = obs
         observ["desired_goal"] = self.goal
         observ["achieved_goal"] = np.array([obs[-2],obs[-1]])
         return observ
 
+    def __process_obs(self,obs):
+        state = []
+        state+= obs["pos"][0]
+        state+= [obs["dist_x"],obs["dist_y"],obs["dist_z"]]
+        state+= obs["gripL"][1]
+        state+= obs["gripR"][1]
+        state+= [obs["gripper"]]
+        # print("state:", state)
+        # print("len:",len(state))
+        return np.array(state)
+
+
     def __normalize(self, x, min_val, max_val):
         return (x - min_val) / (max_val + min_val)
+
+    def flatten(self,x):
+        if isinstance(x, collections.Iterable):
+            return [a for i in x for a in self.flatten(i)]
+        else:
+            return [x]
