@@ -107,7 +107,7 @@ class EnvKinova_gym(gym.GoalEnv):
         observ={}
         observ["observation"] = obs
         observ["desired_goal"] = self.goal
-        observ["achieved_goal"] = np.array([obs[-2],obs[-1]])
+        observ["achieved_goal"] = np.array([obs[7],obs[8]])
         return observ
 
     def __process_obs(self,obs):
@@ -124,9 +124,3 @@ class EnvKinova_gym(gym.GoalEnv):
 
     def __normalize(self, x, min_val, max_val):
         return (x - min_val) / (max_val + min_val)
-
-    def flatten(self,x):
-        if isinstance(x, collections.Iterable):
-            return [a for i in x for a in self.flatten(i)]
-        else:
-            return [x]
