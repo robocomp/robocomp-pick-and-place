@@ -20,11 +20,13 @@ model = DQN(
         max_episode_length=200,
     ),
     verbose=1,
+    seed=0,
+    tensorboard_log="/home/vamsianumula/Desktop/logs/HER2/"
 )
 
 print(env.observation_space)
 print(env.action_space)
 
-checkpoint_callback = CheckpointCallback(save_freq=2000, save_path='/home/vamsianumula/Desktop/logs/HER/checkpoints/', name_prefix='HER')
-model.learn(total_timesteps=int(1e5),eval_freq=1000,callback=checkpoint_callback)
+checkpoint_callback = CheckpointCallback(save_freq=2000, save_path='/home/vamsianumula/Desktop/logs/HER2/checkpoints/', name_prefix='HER2')
+model.learn(total_timesteps=int(2e6),eval_freq=1000,callback=checkpoint_callback)
 model.save("final")

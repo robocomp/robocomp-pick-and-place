@@ -40,6 +40,7 @@ class EnvKinova_gym(gym.GoalEnv):
 
         self.dist = 0
         self.n=100^2
+        self.goal= np.array([2,2])
 
     def step(self, action):
         sim_act = self.__get_action(action)
@@ -61,22 +62,28 @@ class EnvKinova_gym(gym.GoalEnv):
     def compute_reward(self,achieved_goal, desired_goal, info):
         dist = np.sqrt(np.square(achieved_goal-desired_goal).sum())
         self.dist=dist
-        if dist>0.05:
-            reward=-1000
-        elif dist < 0.005:
-            reward=1000
+        # if dist>0.05:
+        #     reward=-1000
+        # elif dist < 0.005:
+        #     reward=1000
+        # else:
+        #     reward= (1 - self.__normalize(dist, 0, 2)) * 10
+        if dist<0.05:
+            reward = 1
+        elif dist<0.2:
+            reward = 0
         else:
-            reward= (1 - self.__normalize(dist, 0, 1)) * 10
+            reward = -1
         
         return reward
 
     def reset(self):
-        self.goal = self.sim.callScriptFunction("reset@gen3", 1) 
-        self.goal = np.array([0.0,0.0])
+        _ = self.sim.callScriptFunction("reset@gen3", 1) 
+        # self.goal=np.array(self.goal[0:2])
         # print("Goal:",self.goal)
         self.current_step = 0
         obs = self.__observate()
-        
+        # print(obs["observation"][0:2])
         return obs
 
     def close(self):
@@ -85,7 +92,7 @@ class EnvKinova_gym(gym.GoalEnv):
         print('Program ended')
 
     def _terminate(self):
-        if self.dist<0.005 or self.dist>0.1:
+        if self.dist<0.05 or self.current_step>=self.max_steps:
             return True
         return False
 
@@ -101,13 +108,13 @@ class EnvKinova_gym(gym.GoalEnv):
     def __observate(self):
         obs = self.sim.callScriptFunction("get_observation@gen3", 1) 
         # print("obs:")
-        # print(obs)
+        
         obs = self.__process_obs(obs)
-
+        # print(obs[0:2])
         observ={}
         observ["observation"] = obs
         observ["desired_goal"] = self.goal
-        observ["achieved_goal"] = np.array([obs[7],obs[8]])
+        observ["achieved_goal"] = np.array([obs[0],obs[1]])
         return observ
 
     def __process_obs(self,obs):
