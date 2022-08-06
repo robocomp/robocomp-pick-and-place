@@ -31,7 +31,7 @@ class EnvKinova_gym(gym.GoalEnv):
         time.sleep(1)
 
         # SPACES
-        self.action_space = spaces.Discrete(243)
+        self.action_space = spaces.Box(low=-1*np.ones((5,)),high=np.ones((5,)),dtype=np.float64)
         self.observation_space = spaces.Dict({
             "observation":spaces.Box(low=-50*np.ones((17,)),high=50*np.ones((17,)),dtype=np.float64),
             "achieved_goal": spaces.Box(low=-50*np.ones((2,)),high=50*np.ones((2,)),dtype=np.float64),
@@ -45,7 +45,8 @@ class EnvKinova_gym(gym.GoalEnv):
     def step(self, action):
         sim_act = self.__get_action(action)
         
-        if self.__interpretate_action(sim_act):
+        # if self.__interpretate_action(sim_act):
+        if True:
             self.sim.callScriptFunction("do_step@gen3", 1, sim_act)
         else:
             print("INCORRECT ACTION: values not in [-1, 0, 1]")
@@ -97,9 +98,9 @@ class EnvKinova_gym(gym.GoalEnv):
         return False
 
     def __get_action(self, action):
-        act_str = np.base_repr(action,base=3)
-        act_str = list('0'*(5-len(act_str)) + act_str)
-        ac = [int(act_str[i])-1 for i in range(5)]
+        # print("ac:",action)
+        ac = action.tolist()
+        ac[4]=int(ac[4])
         return ac
 
     def __interpretate_action(self, action):
