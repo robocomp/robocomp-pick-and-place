@@ -33,14 +33,13 @@ class EnvKinova_gym(gym.GoalEnv):
         # SPACES
         self.action_space = spaces.Box(low=-1*np.ones((5,)),high=np.ones((5,)),dtype=np.float64)
         self.observation_space = spaces.Dict({
-            "observation":spaces.Box(low=-50*np.ones((17,)),high=50*np.ones((17,)),dtype=np.float64),
-            "achieved_goal": spaces.Box(low=-50*np.ones((2,)),high=50*np.ones((2,)),dtype=np.float64),
-            "desired_goal":spaces.Box(low=-50*np.ones((2,)),high=50*np.ones((2,)),dtype=np.float64)
+            "observation":spaces.Box(low=-200*np.ones((23,)),high=200*np.ones((23,)),dtype=np.float64),
+            "achieved_goal": spaces.Box(low=-200*np.ones((2,)),high=200*np.ones((2,)),dtype=np.float64),
+            "desired_goal":spaces.Box(low=-200*np.ones((2,)),high=200*np.ones((2,)),dtype=np.float64)
         })
 
         self.dist = 0
         self.n=100^2
-        self.goal= np.array([0.3,-0.589])
 
     def step(self, action):
         sim_act = self.__get_action(action)
@@ -62,29 +61,18 @@ class EnvKinova_gym(gym.GoalEnv):
 
     def compute_reward(self,achieved_goal, desired_goal, info):
         dist = np.sqrt(np.square(achieved_goal-desired_goal).sum())
-        self.dist=dist
-        # if dist>0.05:
-        #     reward=-1000
-        # elif dist < 0.005:
-        #     reward=1000
-        # else:
-        #     reward= (1 - self.__normalize(dist, 0, 2)) * 10
-        if dist<0.05:
-            reward = 1
-        elif dist<0.2:
+        if dist>0.1:
+            reward=-1000
+        elif dist < 0.005:
             reward = 0
         else:
-            reward = -1
-        
+            reward = -self.__normalize(dist, 0, 1)* 10          
         return reward
 
     def reset(self):
-        _ = self.sim.callScriptFunction("reset@gen3", 1) 
-        # self.goal=np.array(self.goal[0:2])
-        # print("Goal:",self.goal)
+        self.goal = self.sim.callScriptFunction("reset@gen3", 1) 
         self.current_step = 0
         obs = self.__observate()
-        # print(obs["observation"][0:2])
         return obs
 
     def close(self):
@@ -93,7 +81,7 @@ class EnvKinova_gym(gym.GoalEnv):
         print('Program ended')
 
     def _terminate(self):
-        if self.dist<0.05 or self.current_step>=self.max_steps:
+        if self.dist<0.005 or self.current_step>=self.max_steps:
             return True
         return False
 
@@ -101,6 +89,7 @@ class EnvKinova_gym(gym.GoalEnv):
         # print("ac:",action)
         ac = action.tolist()
         ac[4]=int(ac[4])
+        # ac+=[0,0,0]
         return ac
 
     def __interpretate_action(self, action):
@@ -114,8 +103,8 @@ class EnvKinova_gym(gym.GoalEnv):
         # print(obs[0:2])
         observ={}
         observ["observation"] = obs
-        observ["desired_goal"] = self.goal
-        observ["achieved_goal"] = np.array([obs[0],obs[1]])
+        observ["desired_goal"] = np.array([0,0,0])
+        observ["achieved_goal"] = np.array([obs[7],obs[8],obs[9]])
         return observ
 
     def __process_obs(self,obs):
@@ -125,6 +114,8 @@ class EnvKinova_gym(gym.GoalEnv):
         state+= obs["gripL"][1]
         state+= obs["gripR"][1]
         state+= [obs["gripper"]]
+        state+= obs["fingerL"][1]
+        state+= obs["fingerR"][1]
         # print("state:", state)
         # print("len:",len(state))
         return np.array(state)

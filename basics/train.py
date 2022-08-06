@@ -11,7 +11,7 @@ goal_selection_strategy = 'future'
 model = SAC(
     "MultiInputPolicy",
     env,
-    learning_starts=2000,
+    learning_starts=10000,
     replay_buffer_class=HerReplayBuffer,
     # Parameters for HER
     replay_buffer_kwargs=dict(
@@ -20,10 +20,14 @@ model = SAC(
         online_sampling=True,
         max_episode_length=200,
     ),
+    use_sde=True,
     verbose=1,
     seed=0,
     tensorboard_log="/home/vamsianumula/Desktop/logs/HER_SAC/"
 )
+
+# model = SAC.load('/home/vamsianumula/Desktop/logs/HER_SAC/checkpoints/HER_SAC_26000_steps.zip',env=env)
+# # model.learning_starts=2000
 
 print(env.observation_space)
 print(env.action_space)
