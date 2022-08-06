@@ -40,7 +40,7 @@ class EnvKinova_gym(gym.GoalEnv):
 
         self.dist = 0
         self.n=100^2
-        self.goal= np.array([2,2])
+        self.goal= np.array([0.3,-0.589])
 
     def step(self, action):
         sim_act = self.__get_action(action)
