@@ -6,10 +6,10 @@ import time
 
 n_shapes = 0
 
-def set_action_space():
-    limits = np.ones(2)
+def set_action_space(n_actions):
+    limits = np.ones(n_actions)
     action_space = spaces.Box(low=-1*limits, high=limits, dtype=np.int32)
-    action_space.n = np.prod(action_space.shape)
+    action_space.n = n_actions * 3
     return action_space
 
 def set_observation_space(observation):

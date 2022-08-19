@@ -17,7 +17,7 @@ import torchvision.transforms as T
 from EnvKinova_gym import EnvKinova_gym
 import q_aux as QA
 
-env = EnvKinova_gym()
+env = EnvKinova_gym(2)
 
 # set up matplotlib
 is_ipython = 'inline' in matplotlib.get_backend()
@@ -165,6 +165,7 @@ for i_episode in range(EPOCHS):
         # if isinstance(action, int):
         #     action = S.action2index(action)
 
+        print("DQN TAKEN ACTION:", action.item, "DQN ACTION", QA.index2action(int(action.item())))
         next_state, reward, done, _ = env.step(QA.index2action(int(action.item())), t)
         reward = torch.tensor([reward], device=device)
 

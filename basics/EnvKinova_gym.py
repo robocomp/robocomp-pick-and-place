@@ -11,7 +11,7 @@ class EnvKinova_gym(gym.Env):
     #################################
     ## -- GYM INTERFACE METHODS -- ##
     #################################
-    def __init__(self):
+    def __init__(self, n_actions):
         super(EnvKinova_gym, self).__init__()
         print('Loading environment')
         
@@ -32,7 +32,7 @@ class EnvKinova_gym(gym.Env):
         time.sleep(1)
 
         # SPACES
-        self.action_space = spcs.set_action_space()
+        self.action_space = spcs.set_action_space(n_actions)
         # print("-------ACTION SPACE", self.action_space)
         action = self.action_space.sample()
         # print("-------ACTION", action)
