@@ -33,27 +33,27 @@ class EnvKinova_gym(gym.Env):
 
         # SPACES
         self.action_space = spcs.set_action_space()
-        #print("-------ACTION SPACE", self.action_space)
+        # print("-------ACTION SPACE", self.action_space)
         action = self.action_space.sample()
-        #print("-------ACTION", action)
+        # print("-------ACTION", action)
         observation, _, done, _ = self.step(action)
         assert not done
         self.observation_space, self.n = spcs.set_observation_space(observation)
         self.goal = [0, 0]
 
-    def step(self, action):
+    def step(self, action, iter=0):
         print("step() --> ACTION:", action)
         sim_act = [int(action[0]), int(action[1]), 0, 0, 0]
         
         if self.__interpretate_action(sim_act):
             self.sim.callScriptFunction("do_step@gen3", 1, sim_act)
         else:
-            #print("INCORRECT ACTION: values not in [-1, 0, 1]")
+            # print("INCORRECT ACTION: values not in [-1, 0, 1]")
             return None
 
         observation = self.__observate()
-        #print("OBSERVATION IN STEP", observation)
-        exit, reward, arrival, far, dist = self.__reward_and_or_exit(observation)
+        # print("OBSERVATION IN STEP", observation)
+        exit, reward, arrival, far, dist = self.__reward_and_or_exit(observation, iter)
         self.current_step += 1
         
         info = {
@@ -65,8 +65,16 @@ class EnvKinova_gym(gym.Env):
         return observation, reward, exit, info
 
     def reset(self):
-        #print("RESET", "STEP:", self.current_step)
-        self.goal = self.sim.callScriptFunction("reset@gen3", 1) 
+        # print("RESET", "STEP:", self.current_step)
+        # self.goal = self.sim.callScriptFunction("reset@gen3", 1) 
+
+        self.close()
+        time.sleep(0.1)
+        self.defaultIdleFps = self.sim.getInt32Param(self.sim.intparam_idle_fps)
+        self.sim.setInt32Param(self.sim.intparam_idle_fps, 0)
+        self.sim.loadScene("/home/robocomp/robocomp/components/robocomp-pick-and-place/etc/kinova_rl.ttt")
+        self.sim.startSimulation()
+        time.sleep(0.1)
 
         self.current_step = 0
         obs = self.__observate()
@@ -92,32 +100,17 @@ class EnvKinova_gym(gym.Env):
         return np.array([obs["dist_x"], obs["dist_y"]])
 
 
-    def __reward_and_or_exit(self, observation):
-        exit, reward, arrival, far = False, 0, 0, 0
-        dist = math.sqrt(observation[0] ** 2 + observation[1] ** 2)
+    def __reward_and_or_exit(self, observation, iter):
+        # return exit, reward, arrival, far, dist
+        dist = np.linalg.norm(observation[:2])
 
         if dist > 0.1:
-            exit = True
-            reward = -10000
-            far = 1
+            return True, -10, 0, 1, dist
         
+        elif dist < 0.005:
+            return True, 100 - iter, 1, 0, dist
+
         else:
-            reward += (1 - self.__normalize(dist, 0, 1)) * 10
-            
-            if dist < 0.005:
-                exit = True
-                reward += 10000
-                arrival = 1
-
-        return exit, reward, arrival, far, dist
-
-        ''' SIMPIFIED VERSION
-        Goes away:           True, -1
-        Reaches the target:  True,  1
-        Else:                False, 0 '''
-
-    def __normalize(self, x, min_val, max_val):
-        return (x - min_val) / (max_val + min_val)
-
-
+            rwrd = (0.1 - dist) * 100
+            return False, int(rwrd), 0, 0, dist
     

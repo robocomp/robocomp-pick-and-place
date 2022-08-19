@@ -74,7 +74,7 @@ EPS_START = 0.9
 EPS_END = 0.05
 EPS_DECAY = 200
 TARGET_UPDATE = 10
-EPOCHS = 50
+EPOCHS = 1000
 
 # Get number of actions from gym action space
 n_actions = env.action_space.n
@@ -125,36 +125,30 @@ def plot_durations():
         display.display(plt.gcf())
 
 def optimize_model():
+    print("Optimizing...")
     if len(memory) < BATCH_SIZE:
         return
     transitions = memory.sample(BATCH_SIZE)
     batch = Transition(*zip(*transitions))
-
-    print(type(batch.next_state), batch.next_state)
-    non_final_mask = torch.Tensor([t.numpy() for t in batch.next_state])
+    
     non_final_next_states = torch.cat(batch.next_state)
-
-    # print(type(batch.state))
+    non_final_next_states = torch.reshape(non_final_next_states, (128,2))
     state_batch = torch.cat(batch.state)
+    state_batch = torch.reshape(state_batch, (128,2))
     action_batch = torch.cat(batch.action)
+    action_batch = action_batch.type(torch.int64)
     reward_batch = torch.cat(batch.reward)
-    
-    print("AAAAAAAAAAAAAA")
-    aux_list = [policy_net(s) for s in list(batch.state)]
-    print(len(aux_list))
-    state_action_values = aux_list.gather(1, action_batch)
-    
 
-    print("EEEEEEEEEEEEEE")
+    state_action_values = policy_net(state_batch).gather(1, action_batch)
+    
     next_state_values = torch.zeros(BATCH_SIZE, device=device)
-    next_state_values[non_final_mask] = [target_net(t).max() for t in non_final_next_states]
+    next_state_values = target_net(non_final_next_states).max(1)[0].detach()
+    
     expected_state_action_values = (next_state_values * GAMMA) + reward_batch
 
-    # Loss
     criterion = nn.SmoothL1Loss()
     loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
 
-    # Optimization
     optimizer.zero_grad()
     loss.backward()
     for param in policy_net.parameters():
@@ -171,7 +165,7 @@ for i_episode in range(EPOCHS):
         # if isinstance(action, int):
         #     action = S.action2index(action)
 
-        next_state, reward, done, _ = env.step(QA.index2action(int(action.item())))
+        next_state, reward, done, _ = env.step(QA.index2action(int(action.item())), t)
         reward = torch.tensor([reward], device=device)
 
         # Store the transition in memory
@@ -191,7 +185,6 @@ for i_episode in range(EPOCHS):
         target_net.load_state_dict(policy_net.state_dict())
 
 print('Complete')
-env.render()
 env.close()
 plt.ioff()
 plt.show()
