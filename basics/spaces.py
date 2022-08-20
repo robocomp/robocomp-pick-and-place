@@ -9,7 +9,7 @@ n_shapes = 0
 def set_action_space(n_actions):
     limits = np.ones(n_actions)
     action_space = spaces.Box(low=-1*limits, high=limits, dtype=np.int32)
-    action_space.n = n_actions * 3
+    action_space.n = 3 ** n_actions
     return action_space
 
 def set_observation_space(observation):
@@ -21,12 +21,12 @@ def set_observation_space(observation):
     global n_shapes 
     n_shapes = 0
     observation_space = __convert_observation_to_space(observation)
-    #print(len(observation_space))
+    # print(len(observation_space))
     n = 100 ^ n_shapes
     return observation_space, n
 
 def __convert_observation_to_space(observation):
-    #print(observation)
+    #p  rint(observation)
     global n_shapes
     
     time.sleep(0.5)

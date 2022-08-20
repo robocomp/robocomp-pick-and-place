@@ -15,9 +15,11 @@ def action2index(action):
     return ACTION_TABLE[action[0]+1][action[1]+1]
 
 def index2action(index):
-    x = index // 3 - 1
-    y = index % 3 - 1
-    return [x, y]
+    z = (index % 3) - 1
+    y = ((index // 3) % 3) - 1
+    x = ((y // 3) % 3) - 1
+
+    return [x, y, z]
 
 def actionFromAlg(state):
     '''Returns an action based on an algorithmic model'''

@@ -13,7 +13,7 @@ class EnvKinova_gym(gym.Env):
     #################################
     def __init__(self, n_actions):
         super(EnvKinova_gym, self).__init__()
-        print('Loading environment')
+        # print('Loading environment')
         
         # API CLIENT
         self.client = RemoteAPIClient()
@@ -43,7 +43,7 @@ class EnvKinova_gym(gym.Env):
 
     def step(self, action, iter=0):
         print("step() --> ACTION:", action)
-        sim_act = [int(action[0]), int(action[1]), 0, 0, 0]
+        sim_act = [int(action[0]), int(action[1]), int(action[2]), 0, 0]
         
         if self.__interpretate_action(sim_act):
             self.sim.callScriptFunction("do_step@gen3", 1, sim_act)
@@ -83,7 +83,7 @@ class EnvKinova_gym(gym.Env):
     def close(self):
         self.sim.stopSimulation()
         self.sim.setInt32Param(self.sim.intparam_idle_fps, self.defaultIdleFps)
-        print('Program ended')
+        # print('Program ended')
 
     ####################################
     ## -- PRIVATE AUXILIAR METHODS -- ##
@@ -97,20 +97,29 @@ class EnvKinova_gym(gym.Env):
         obs = self.sim.callScriptFunction("get_observation@gen3", 1) 
         # return obs
         # return {"dist_x": obs["dist_x"], "dist_y": obs["dist_y"]}
-        return np.array([obs["dist_x"], obs["dist_y"]])
+        # print(len(obs.keys()))
+        return np.array([obs["dist_x"], obs["dist_y"], obs["dist_z"], obs["fingerL"], obs["fingerR"]])
 
 
     def __reward_and_or_exit(self, observation, iter):
         # return exit, reward, arrival, far, dist
-        dist = np.linalg.norm(observation[:2])
 
-        if dist > 0.1:
-            return True, -10, 0, 1, dist
+        # TODO: ADD Z AND COLLISIONS
+
+        dist = np.linalg.norm(observation[:3])
+
+        print("L", observation[3])
+        print("R", observation[4])
+
+        if observation[3] > 0.01 or observation[4] > 0.01:
+            return True, -100, 0, 0, dist
         
-        elif dist < 0.005:
-            return True, 100 - iter, 1, 0, dist
+        if dist > 0.1:
+            return True, -1000, 0, 1, dist
+        
+        if dist < 0.005:
+            return True, -iter, 1, 0, dist
 
-        else:
-            rwrd = (0.1 - dist) * 100
-            return False, int(rwrd), 0, 0, dist
+        rwrd = (0.1 - dist) * 10
+        return False, -1, 0, 0, dist
     

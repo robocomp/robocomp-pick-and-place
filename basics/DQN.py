@@ -17,7 +17,10 @@ import torchvision.transforms as T
 from EnvKinova_gym import EnvKinova_gym
 import q_aux as QA
 
-env = EnvKinova_gym(2)
+N_DIMS = 3
+OBS_SIZE = 5
+
+env = EnvKinova_gym(N_DIMS)
 
 # set up matplotlib
 is_ipython = 'inline' in matplotlib.get_backend()
@@ -28,6 +31,7 @@ plt.ion()
 
 # if gpu is to be used
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
 
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
@@ -56,15 +60,15 @@ class DQN(nn.Module):
         self.l3 = nn.Softmax()
 
     def forward(self, x):
-        print("ENTRADA", x.shape)
+        # print("ENTRADA", x.shape, x)
         x = torch.Tensor(x).to(device)
-        print("TENSOR", x.shape)
+        # print("TENSOR", x.shape)
         x = F.relu(self.l1(x))
-        print("L1", x.shape)
+        # print("L1", x.shape)
         x = F.relu(self.l2(x))
-        print("L2", x.shape)
+        # print("L2", x.shape)
         x = self.l3(x)
-        print("L3", x.shape)
+        # print("L3", x.shape)
         return x
 
 
@@ -74,14 +78,14 @@ EPS_START = 0.9
 EPS_END = 0.05
 EPS_DECAY = 200
 TARGET_UPDATE = 10
-EPOCHS = 1000
+EPOCHS = 2000
 
 # Get number of actions from gym action space
 n_actions = env.action_space.n
-print("NACTIONS :::: ", n_actions)
+# print("NACTIONS :::: ", n_actions)
 
-policy_net = DQN(2, n_actions).to(device)
-target_net = DQN(2, n_actions).to(device)
+policy_net = DQN(OBS_SIZE, n_actions).to(device)
+target_net = DQN(OBS_SIZE, n_actions).to(device)
 target_net.load_state_dict(policy_net.state_dict())
 target_net.eval()
 
@@ -125,16 +129,16 @@ def plot_durations():
         display.display(plt.gcf())
 
 def optimize_model():
-    print("Optimizing...")
+    # print("Optimizing...")
     if len(memory) < BATCH_SIZE:
         return
     transitions = memory.sample(BATCH_SIZE)
     batch = Transition(*zip(*transitions))
     
     non_final_next_states = torch.cat(batch.next_state)
-    non_final_next_states = torch.reshape(non_final_next_states, (128,2))
+    non_final_next_states = torch.reshape(non_final_next_states, (128,OBS_SIZE))
     state_batch = torch.cat(batch.state)
-    state_batch = torch.reshape(state_batch, (128,2))
+    state_batch = torch.reshape(state_batch, (128,OBS_SIZE))
     action_batch = torch.cat(batch.action)
     action_batch = action_batch.type(torch.int64)
     reward_batch = torch.cat(batch.reward)
@@ -165,11 +169,12 @@ for i_episode in range(EPOCHS):
         # if isinstance(action, int):
         #     action = S.action2index(action)
 
-        print("DQN TAKEN ACTION:", action.item, "DQN ACTION", QA.index2action(int(action.item())))
+        # print("DQN TAKEN ACTION:", action.item, "DQN ACTION", QA.index2action(int(action.item())))
         next_state, reward, done, _ = env.step(QA.index2action(int(action.item())), t)
         reward = torch.tensor([reward], device=device)
 
         # Store the transition in memory
+        # print("STATE", state, "NEXT STATE", next_state)
         memory.push(torch.Tensor(state), action, torch.Tensor(next_state), reward)
 
         # Move to the next state
@@ -185,7 +190,7 @@ for i_episode in range(EPOCHS):
     if i_episode % TARGET_UPDATE == 0:
         target_net.load_state_dict(policy_net.state_dict())
 
-print('Complete')
+print('TRAINING ENDED :)')
 env.close()
 plt.ioff()
 plt.show()
