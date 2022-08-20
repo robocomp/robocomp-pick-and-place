@@ -11,7 +11,7 @@ goal_selection_strategy = 'future'
 model = SAC(
     "MultiInputPolicy",
     env,
-    learning_starts=10000,
+    learning_starts=512,
     replay_buffer_class=HerReplayBuffer,
     # Parameters for HER
     replay_buffer_kwargs=dict(

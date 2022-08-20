@@ -1,5 +1,5 @@
 import numpy as np
-from EnvKinova_gym import EnvKinova_gym
+from sac_env import EnvKinova_gym
 import time
 
 env = EnvKinova_gym()
@@ -10,23 +10,39 @@ MAX_ITER_EPISODE = 100
 
 rewards = []
 
-for i in range(N_EPISODES):
-    s = env.reset()
-    done = False  
-    rew_ep = 0
+env.reset()
 
-    for j in range(MAX_ITER_EPISODE):
-        action = env.action_space.sample()
-        next_state, reward, done, info = env.step(action)
+env.step(np.array([0,0,-1,0,0]))
+env.step(np.array([0,0,-1,0,0]))
+env.step(np.array([0,0,0,0,-1]))
+env.step(np.array([0,0,0,0,-1]))
+env.step(np.array([0,0,0.3,0,-1]))
 
-        rew_ep += reward
-        if done:
-            break
-        s = next_state
 
-    print(f"Eps: {i}, Reward: {rew_ep}")
-    rewards.append(rew_ep)
 
-    if i!=0 and i%9==0:
-        avg = np.mean(rewards[-10:-1])
-        print(f"Average reward for 10 episodes: {avg}") 
+time.sleep(5)
+env.close()
+
+# for i in range(N_EPISODES):
+#     s = env.reset()
+#     done = False  
+#     rew_ep = 0
+
+#     for j in range(MAX_ITER_EPISODE):
+#         action = env.action_space.sample()
+#         next_state, reward, done, info = env.step(action)
+
+#         rew_ep += reward
+#         if done:
+#             break
+#         s = next_state
+
+#     print(f"Eps: {i}, Reward: {rew_ep}")
+#     rewards.append(rew_ep)
+
+#     if i!=0 and i%9==0:
+#         avg = np.mean(rewards[-10:-1])
+#         print(f"Average reward for 10 episodes: {avg}") 
+
+# time.sleep(5)
+# env.close()
