@@ -26,7 +26,7 @@ class EnvKinova_gym(gym.GoalEnv):
         # SCENE
         self.defaultIdleFps = self.sim.getInt32Param(self.sim.intparam_idle_fps)
         self.sim.setInt32Param(self.sim.intparam_idle_fps, 0)
-        self.sim.loadScene("/home/robocomp/robocomp/components/robocomp-pick-and-place/etc/kinova_rl.ttt")
+        self.sim.loadScene("/home/robocomp/robocomp/components/robocomp-pick-and-place/etc/kinova_rl_grasp.ttt")
         self.sim.startSimulation()
         time.sleep(1)
 
@@ -34,24 +34,26 @@ class EnvKinova_gym(gym.GoalEnv):
         self.action_space = spaces.Box(low=-1*np.ones((5,)),high=np.ones((5,)),dtype=np.float64)
         self.observation_space = spaces.Dict({
             "observation":spaces.Box(low=-200*np.ones((23,)),high=200*np.ones((23,)),dtype=np.float64),
-            "achieved_goal": spaces.Box(low=-200*np.ones((2,)),high=200*np.ones((2,)),dtype=np.float64),
-            "desired_goal":spaces.Box(low=-200*np.ones((2,)),high=200*np.ones((2,)),dtype=np.float64)
+            "achieved_goal": spaces.Box(low=-200*np.ones((1,)),high=200*np.ones((1,)),dtype=np.float64),
+            "desired_goal":spaces.Box(low=-200*np.ones((1,)),high=200*np.ones((1,)),dtype=np.float64)
         })
 
         self.dist = 0
         self.n=100^2
+        self.init_h=0
 
     def step(self, action):
         sim_act = self.__get_action(action)
-        
-        # if self.__interpretate_action(sim_act):
-        if True:
-            self.sim.callScriptFunction("do_step@gen3", 1, sim_act)
-        else:
-            print("INCORRECT ACTION: values not in [-1, 0, 1]")
-            return None
+        self.sim.callScriptFunction("do_step@gen3", 1, sim_act)
 
         observation = self.__observate()
+        obs = observation["observation"]
+
+        # gr_l=np.array(obs[10:13])
+        # gr_r=np.array(obs[13:16])
+        # gL= np.sqrt(gr_l.dot(gr_l))
+        # gR = np.sqrt(gr_r.dot(gr_r))
+        
         reward = self.compute_reward(observation['achieved_goal'], observation['desired_goal'],None)
         done = self._terminate()
 
@@ -60,17 +62,24 @@ class EnvKinova_gym(gym.GoalEnv):
         return observation, reward, done, info
 
     def compute_reward(self,achieved_goal, desired_goal, info):
-        dist = np.sqrt(np.square(achieved_goal-desired_goal).sum())
-        if dist>0.1:
-            reward=-1000
-        elif dist < 0.005:
-            reward = 0
-        else:
-            reward = -self.__normalize(dist, 0, 1)* 10          
+        print("ag:", type(achieved_goal))
+        print("dg:",desired_goal)
+
+        self.dist = abs(achieved_goal-desired_goal)
+        print("dist:",self.dist)
+
+        # delta_h = abs(achieved_goal-desired_goal)
+        # print("del_h:",delta_h)
+
+        if self.dist<0.005:
+            return 0
+        reward = -1
         return reward
 
     def reset(self):
-        self.goal = self.sim.callScriptFunction("reset@gen3", 1) 
+        goal = self.sim.callScriptFunction("reset@gen3", 1) 
+        self.init_h=goal[2]
+        
         self.current_step = 0
         obs = self.__observate()
         return obs
@@ -86,10 +95,8 @@ class EnvKinova_gym(gym.GoalEnv):
         return False
 
     def __get_action(self, action):
-        # print("ac:",action)
         ac = action.tolist()
-        ac[4]=int(ac[4])
-        # ac+=[0,0,0]
+        ac[4]=int(round(ac[4]))
         return ac
 
     def __interpretate_action(self, action):
@@ -97,14 +104,12 @@ class EnvKinova_gym(gym.GoalEnv):
 
     def __observate(self):
         obs = self.sim.callScriptFunction("get_observation@gen3", 1) 
-        # print("obs:")
-        
         obs = self.__process_obs(obs)
-        # print(obs[0:2])
+
         observ={}
         observ["observation"] = obs
-        observ["desired_goal"] = np.array([0,0,0])
-        observ["achieved_goal"] = np.array([obs[7],obs[8],obs[9]])
+        observ["desired_goal"] = self.init_h+0.5
+        observ["achieved_goal"] = obs[2]
         return observ
 
     def __process_obs(self,obs):
@@ -116,10 +121,7 @@ class EnvKinova_gym(gym.GoalEnv):
         state+= [obs["gripper"]]
         state+= obs["fingerL"][1]
         state+= obs["fingerR"][1]
-        # print("state:", state)
-        # print("len:",len(state))
         return np.array(state)
-
 
     def __normalize(self, x, min_val, max_val):
         return (x - min_val) / (max_val + min_val)
