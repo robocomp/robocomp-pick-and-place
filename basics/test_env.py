@@ -12,15 +12,43 @@ rewards = []
 
 env.reset()
 
-env.step(np.array([0,0,-1,0,0]))
-env.step(np.array([0,0,-1,0,0]))
-env.step(np.array([0,0,0,0,-1]))
-env.step(np.array([0,0,0,0,-1]))
-env.step(np.array([0,0,0.3,0,-1]))
+_,r,_,_= env.step(np.array([0,0,-1,0,0]))
+_,r,_,_ = env.step(np.array([0,0,-1,0,0]))
+_,r,_,_ = env.step(np.array([0,0,-1,0,0]))
+_,r,_,_ = env.step(np.array([0,0,-1,0,0]))
+_,r,_,_ = env.step(np.array([0,0,-1,0,0]))
+_,r,_,_ = env.step(np.array([0,0,-1,0,0]))
+_,r,_,_ = env.step(np.array([0,0,-1,0,0]))
+# print(r)
+_,r,_,_ = env.step(np.array([0,0,-1,0,-1]))
+time.sleep(0.5)
+_,r,_,_ = env.step(np.array([0,0,-1,0,-1]))
+time.sleep(0.5)
+# print(r)
+# env.step(np.array([0,0,0.3,0,-1]))
+_,r,_,_ = env.step(np.array([0,0,1,0,-1]))
+time.sleep(0.5)
+# print(r)
+_,r,_,_ = env.step(np.array([0,0,1,0,-1]))
+time.sleep(0.5)
+# print(r)
+_,r,_,_ = env.step(np.array([0,0,1,0,-1]))
+# time.sleep(5)
+# print(r)
+_,r,_,_ = env.step(np.array([0,0,1,0,-1]))
+_,r,_,_ = env.step(np.array([0,0,1,0,-1]))
+# time.sleep(5)
+# print(r)
+for i in range(50):
+    _,r,_,_ = env.step(np.array([0,0,1,0,-1]))
+    
+# _,r,_,_ = env.step(np.array([0,0,1,0,-1]))
+# _,r,_,_ = env.step(np.array([0,0,1,0,-1]))
+# _,r,_,_ = env.step(np.array([0,0,1,0,-1]))
+# _,r,_,_ = env.step(np.array([0,0,1,0,-1]))
+# _,r,_,_ = env.step(np.array([0,0,1,0,-1]))
 
-
-
-time.sleep(5)
+# time.sleep(5)
 env.close()
 
 # for i in range(N_EPISODES):
