@@ -47,6 +47,7 @@ class EnvKinova_gym(gym.Env):
 
         fL, fR = obs[21], obs[22]        
         done = False
+        reward = 0
 
         if self.current_step>=self.max_steps:
             done = True
@@ -55,6 +56,10 @@ class EnvKinova_gym(gym.Env):
             print('Arm is very far')
             done=True
             reward=-100
+        elif obs[2]-self.init_h<0:
+            done=True
+            reward = -100
+            print('Object is getting crushed')
         elif (fL>5 or fR>5):
             print('Collison detected')
             self.close()
@@ -65,16 +70,18 @@ class EnvKinova_gym(gym.Env):
             time.sleep(4)
             reward=-100
             done=True
-        elif self.grasp_check(obs,action) and abs(obs[2]-self.goal_h)<0.05:
+        elif self.grasp_check(obs,sim_act) and abs(obs[2]-self.goal_h)<0.05:
             print('Goal reached')
             reward = 1000
             done=True
-        elif self.grasp_check(obs,action) and (obs[2]>self.init_h):
+        elif self.grasp_check(obs,sim_act):
             diff = obs[2]-self.init_h
+            reward = 1
             print(f'Grasp detected with obj height diff: {diff}')
-            reward = 1000*self.__normalize(diff,0,self.goal_h-self.init_h)
-        else:
-            reward = -0.1
+            if diff>0:
+                reward += 10*self.__normalize(diff,0,self.goal_h-self.init_h)
+
+        reward -= -0.1
 
         self.current_step += 1
         info = {}
@@ -84,9 +91,9 @@ class EnvKinova_gym(gym.Env):
         gL= obs[19]
         gR = obs[20]
         
-        # print("gL:",gL,"gR:",gR,"y:",obs[19])
+        # print("gL:",gL,"gR:",gR, "ac:",action[4])
 
-        if gL>0.1 and gR>0.1 and action[4]==-1:
+        if gL>0.15 and gR>0.15 and action[4]==-1:
             return True
         return False
 
@@ -102,7 +109,7 @@ class EnvKinova_gym(gym.Env):
         self.current_step = 0
         obs = self.__observate()
         self.init_h = obs[2]
-        self.goal_h = self.init_h+0.3
+        self.goal_h = self.init_h+0.1
         # print(f'Initial height:{self.init_h}, Goal height:{self.goal_h}')
         return obs
 
