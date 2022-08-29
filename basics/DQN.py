@@ -17,8 +17,8 @@ import torchvision.transforms as T
 from EnvKinova_gym import EnvKinova_gym
 import q_aux as QA
 
-N_DIMS = 3
-OBS_SIZE = 5
+N_DIMS = 4
+OBS_SIZE = 7
 
 env = EnvKinova_gym(N_DIMS)
 
@@ -55,9 +55,11 @@ class DQN(nn.Module):
 
     def __init__(self, n_imputs, n_outputs):
         super(DQN, self).__init__()
-        self.l1 = nn.Linear(n_imputs, 12)
-        self.l2 = nn.Linear(12, n_outputs)
-        self.l3 = nn.Softmax()
+        self.l1 = nn.Linear(n_imputs, 36)
+        self.l2 = nn.Linear(36, 25)
+        self.l3 = nn.Linear(25, 16)
+        self.l4 = nn.Linear(16, n_outputs)
+        self.s = nn.Softmax()
 
     def forward(self, x):
         # print("ENTRADA", x.shape, x)
@@ -67,8 +69,12 @@ class DQN(nn.Module):
         # print("L1", x.shape)
         x = F.relu(self.l2(x))
         # print("L2", x.shape)
-        x = self.l3(x)
+        x = F.relu(self.l3(x))
         # print("L3", x.shape)
+        x = F.relu(self.l4(x))
+        # print("L4", x.shape)
+        x = self.s(x)
+        # print("S", x.shape)
         return x
 
 
@@ -78,7 +84,7 @@ EPS_START = 0.9
 EPS_END = 0.05
 EPS_DECAY = 200
 TARGET_UPDATE = 10
-EPOCHS = 2000
+EPOCHS = 25000
 
 # Get number of actions from gym action space
 n_actions = env.action_space.n
@@ -102,12 +108,13 @@ def select_action(state):
     steps_done += 1
     if sample > eps_threshold:
         with torch.no_grad():
-            return policy_net(state).max().view(1, 1)
+            return policy_net(state).argmax().view(1, 1)
     else:
         return torch.tensor([[random.randrange(n_actions)]], device=device, dtype=torch.long)
 
 
 episode_durations = []
+acc_rewards = []
 
 def plot_durations():
     plt.figure(2)
@@ -116,12 +123,21 @@ def plot_durations():
     plt.title('Training...')
     plt.xlabel('Episode')
     plt.ylabel('Duration')
-    plt.plot(durations_t.numpy())
+    plt.plot(durations_t.numpy(), 'bo')
     
-    if len(durations_t) >= 100:  # Take 100 episode averages and plot them too
+    if len(durations_t) >= 100:  # 100 episode durations
         means = durations_t.unfold(0, 100, 1).mean(1).view(-1)
         means = torch.cat((torch.zeros(99), means))
-        plt.plot(means.numpy())
+        plt.plot(means.numpy(), 'b')
+
+    rewards_t = list(map( lambda x:x/10, acc_rewards))
+    rewards_t = torch.tensor(rewards_t, dtype=torch.float)
+    plt.plot(rewards_t.numpy(), 'ro')
+
+    if len(rewards_t) >= 100:  # 100 episode rewards
+        means = rewards_t.unfold(0, 100, 1).mean(1).view(-1)
+        means = torch.cat((torch.zeros(99), means))
+        plt.plot(means.numpy(), 'r')
 
     plt.pause(0.001)  # pause a bit so that plots are updated
     if is_ipython:
@@ -170,7 +186,7 @@ for i_episode in range(EPOCHS):
         #     action = S.action2index(action)
 
         # print("DQN TAKEN ACTION:", action.item, "DQN ACTION", QA.index2action(int(action.item())))
-        next_state, reward, done, _ = env.step(QA.index2action(int(action.item())), t)
+        next_state, reward, done, info = env.step(QA.index2action(int(action.item())), t)
         reward = torch.tensor([reward], device=device)
 
         # Store the transition in memory
@@ -184,6 +200,7 @@ for i_episode in range(EPOCHS):
         optimize_model()
         if done:
             episode_durations.append(t + 1)
+            acc_rewards.append(info["acc_reward"])
             plot_durations()
             break
     # Update the target network, copying all weights and biases in DQN

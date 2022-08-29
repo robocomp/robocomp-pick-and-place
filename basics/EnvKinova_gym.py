@@ -1,3 +1,4 @@
+from dis import dis
 import gym, sys, time, math
 from gym import spaces
 import spaces as spcs
@@ -23,6 +24,9 @@ class EnvKinova_gym(gym.Env):
         self.possible_values = [-1, 0, 1]
         self.max_steps = 200
         self.current_step = 0
+        self.acc_reward = 0
+        self.previous_2d_dist = 0
+        self.previous_3d_dist = 0
 
         # SCENE
         self.defaultIdleFps = self.sim.getInt32Param(self.sim.intparam_idle_fps)
@@ -43,7 +47,7 @@ class EnvKinova_gym(gym.Env):
 
     def step(self, action, iter=0):
         print("step() --> ACTION:", action)
-        sim_act = [int(action[0]), int(action[1]), int(action[2]), 0, 0]
+        sim_act = [int(action[0]), int(action[1]), int(action[2]), 0, int(action[3])]
         
         if self.__interpretate_action(sim_act):
             self.sim.callScriptFunction("do_step@gen3", 1, sim_act)
@@ -55,11 +59,13 @@ class EnvKinova_gym(gym.Env):
         # print("OBSERVATION IN STEP", observation)
         exit, reward, arrival, far, dist = self.__reward_and_or_exit(observation, iter)
         self.current_step += 1
+        self.acc_reward += reward
         
         info = {
             "arrival": arrival,
             "far": far,
             "dist": dist,
+            "acc_reward": self.acc_reward,
         }
 
         return observation, reward, exit, info
@@ -77,6 +83,8 @@ class EnvKinova_gym(gym.Env):
         time.sleep(0.1)
 
         self.current_step = 0
+        self.acc_reward = 0
+        self.previous_dist = 0
         obs = self.__observate()
         return obs
 
@@ -98,28 +106,61 @@ class EnvKinova_gym(gym.Env):
         # return obs
         # return {"dist_x": obs["dist_x"], "dist_y": obs["dist_y"]}
         # print(len(obs.keys()))
-        return np.array([obs["dist_x"], obs["dist_y"], obs["dist_z"], obs["fingerL"], obs["fingerR"]])
+        return np.array([obs["dist_x"], obs["dist_y"], obs["dist_z"],
+               LA.norm(obs["fingerL"]), LA.norm(obs["fingerR"]),
+               LA.norm(obs["gripL"]), LA.norm(obs["gripR"])])
 
 
     def __reward_and_or_exit(self, observation, iter):
         # return exit, reward, arrival, far, dist
+        dist_2d = LA.norm(observation[:2])
+        dist_3d = LA.norm(observation[:3])
 
-        # TODO: ADD Z AND COLLISIONS
-
-        dist = np.linalg.norm(observation[:3])
-
-        print("L", observation[3])
-        print("R", observation[4])
-
-        if observation[3] > 0.01 or observation[4] > 0.01:
-            return True, -100, 0, 0, dist
+        print(observation[5])
+        print(observation[6])
         
-        if dist > 0.1:
-            return True, -1000, 0, 1, dist
-        
-        if dist < 0.005:
-            return True, -iter, 1, 0, dist
+        bad_g = -5 if observation[5] > 0.001 or observation[6] > 0.001 else 2
 
-        rwrd = (0.1 - dist) * 10
-        return False, -1, 0, 0, dist
+        if observation[3] > 0.1 or observation[4] > 0.1:
+            print("Colisión")
+            return True, dist_3d*1000 + bad_g, 0, 0, dist_3d
+
+        elif dist_3d > 0.1:
+            print("Lejos en 3D")
+            return True, -10 + bad_g, 0, 1, dist_3d
+
+        elif dist_2d > 0.08:
+            print("Lejos en 2D")
+            return True, -5 + bad_g, 0, 1, dist_3d
+        
+        elif dist_2d < 0.005:
+            if dist_3d <= 0.005:
+                if observation[5] > 0.4 and observation[6] > 0.4:
+                    print("PREMIOOOOOOOOOOOOOO")
+                    return True, 500 - iter, 1, 0, dist_3d
+                    
+                elif observation[5] > 0.1 or observation[6] > 0.1:
+                    print("UYYYYYYYYYYYYY")
+                    return False, 300 - iter, 0, 0, dist_3d
+
+                else:
+                    print("Casi")
+                    return False, 200 - iter, 0, 0, dist_3d
+            else:
+                print("Colocado")
+                return False, 20 + bad_g, 0, 0, dist_3d
+
+        elif iter > 200:
+            print("Muy lento")
+            return True, -20 + bad_g, 0, 0, dist_3d
+
+        else:
+            rwrd =  10 if dist_2d < self.previous_2d_dist else -3
+            rwrd += 3  if dist_3d < self.previous_3d_dist else -1
+            rwrd += bad_g
+
+            self.previous_2d_dist = dist_2d
+            self.previous_3d_dist = dist_3d
+
+            return False, rwrd, 0, 0, dist_3d
     
