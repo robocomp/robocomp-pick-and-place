@@ -72,16 +72,16 @@ class EnvKinova_gym(gym.Env):
             time.sleep(4)
             reward=-10
             done=True
-        elif self.grasp_check(obs,sim_act) and abs(obs[2]-self.goal_h)<0.005:
+        elif self.grasp_check(obs,sim_act) and self.goal_h-obs[2]<0.005:
             print('Goal reached')
             reward = 1000
             done=True
-        elif self.grasp_check(obs,sim_act):
-            diff = obs[2]-self.init_h
+        elif self.grasp_check(obs,sim_act) and diff>0:
+            # diff = obs[2]-self.init_h
             print(f'Grasp detected with obj height diff: {diff}')
-            reward = 1 + 100*self.__normalize(diff,0,self.goal_h-self.init_h)
-
-        reward -= -0.1
+            reward = 1000*self.__normalize(diff,0,self.goal_h-self.init_h)
+        else:
+            reward -= -0.1
 
         self.current_step += 1
         info = {}
