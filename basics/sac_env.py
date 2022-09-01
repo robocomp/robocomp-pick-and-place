@@ -36,7 +36,6 @@ class EnvKinova_gym(gym.Env):
         self.init_h=0
         self.goal_h = 0
 
-
     def step(self, action):
         sim_act = self.__get_action(action)
         self.sim.callScriptFunction("do_step@gen3", 1, sim_act)
@@ -56,7 +55,7 @@ class EnvKinova_gym(gym.Env):
         if self.dist_check(obs):
             print('Arm is very far')
             done=True
-            reward=-10
+            reward=-1000
         # elif diff<0 and abs(diff)>0.0005:
         #     done=True
         #     reward = -100
@@ -70,19 +69,21 @@ class EnvKinova_gym(gym.Env):
             self.sim.loadScene("/home/robocomp/robocomp/components/robocomp-pick-and-place/etc/kinova_rl_grasp.ttt")
             self.sim.startSimulation()
             time.sleep(4)
-            reward=-10
+            reward=-1000
             done=True
         elif self.grasp_check(obs,sim_act) and self.goal_h-obs[2]<0.005:
             print('Goal reached')
-            reward = 1000
+            reward = 2000
             done=True
         elif self.grasp_check(obs,sim_act) and diff>0:
             # diff = obs[2]-self.init_h
-            print(f'Grasp detected with obj height diff: {diff}')
-            reward = 1000*self.__normalize(diff,0,self.goal_h-self.init_h)
-        else:
-            reward -= -0.1
+            reward = 1000*(self.__normalize(diff,0,self.goal_h-self.init_h))
+            # reward = -5*(1-self.__normalize(diff,0,self.goal_h-self.init_h))**4
+            print(f'Grasp detected with obj height diff: {diff} with reward: {reward}')
 
+        reward = reward - 100
+        
+        # print(reward)
         self.current_step += 1
         info = {}
         return obs, float(reward), done, info
