@@ -91,9 +91,10 @@ class EnvKinova_gym(gym.Env):
         if done:
             self.close()
             self.sim.setInt32Param(self.sim.intparam_idle_fps, 0)
+            time.sleep(3)
             self.sim.loadScene("/home/robocomp/robocomp/components/robocomp-pick-and-place/etc/kinova_rl_grasp.ttt")
             self.sim.startSimulation()
-            time.sleep(4)
+            time.sleep(1)
 
         return obs, float(reward), done, info
 
