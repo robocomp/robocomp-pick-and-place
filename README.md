@@ -81,7 +81,7 @@ Soft Actor Critic (SAC) is chosen for training in continuous action space settin
 
 ### Trained agent demo
 
-*TODO*
+<img src="basics/assets/trained_agent.gif" width="50%" height="25%"/>
 
 ### Reward curve
 
