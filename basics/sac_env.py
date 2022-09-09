@@ -71,8 +71,8 @@ class EnvKinova_gym(gym.Env):
             reward = 1000*(self.__normalize(diff2,0,self.goal_h-self.init_h))
             # reward = 1000*diff2
             print(f'Grasp detected with obj height diff: {diff2} with reward: {reward}')
-        else:
-            reward = -10
+        # else:
+        #     reward = -10
 
         self.current_step += 1
         info = {}
