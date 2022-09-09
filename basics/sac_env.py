@@ -67,12 +67,12 @@ class EnvKinova_gym(gym.Env):
             print('Goal reached')
             reward = 10000
             done=True
-        elif self.grasp_check(obs,sim_act) and diff>0:
+        elif self.grasp_check(obs,sim_act) and diff>0 and diff2>0:
             reward = 1000*(self.__normalize(diff2,0,self.goal_h-self.init_h))
             # reward = 1000*diff2
             print(f'Grasp detected with obj height diff: {diff2} with reward: {reward}')
-        
-        # reward -= 3
+        else:
+            reward = -10
 
         self.current_step += 1
         info = {}
@@ -80,12 +80,12 @@ class EnvKinova_gym(gym.Env):
 
         if done:
             self.close()
-            time.sleep(1.5)
+            time.sleep(1)
             self.sim.setInt32Param(self.sim.intparam_idle_fps, 0)
             self.sim.loadScene("/home/robocomp/robocomp/components/robocomp-pick-and-place/etc/kinova_rl_grasp.ttt")
             time.sleep(0.5)
             self.sim.startSimulation()
-            time.sleep(1)
+            time.sleep(1.5)
         return obs, float(reward), done, info
 
     def grasp_check(self, obs, action):

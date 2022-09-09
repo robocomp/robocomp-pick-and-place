@@ -8,14 +8,14 @@ from stable_baselines3.her.goal_selection_strategy import GoalSelectionStrategy
 env = EnvKinova_gym()
 goal_selection_strategy = 'future'
 
-i='0_0'  #change this when starting new training
+i='3_0'  #change this when starting new training
 
 model = SAC("MlpPolicy",
     env,
-    # use_sde=True,
+    use_sde=True,
     learning_starts=10000,
     # policy_kwargs=dict(net_arch=[400, 300]),
-    # learning_rate=0.001,
+    learning_rate=0.001,
     verbose=1,
     seed=0,
     tensorboard_log=f"/home/vamsianumula/Desktop/logs/SAC_{i}"

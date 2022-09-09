@@ -16,7 +16,7 @@ def get_idx(i):
 
 env = EnvKinova_gym()
 
-i='0' # Training trail number
+i='3' # Training trail number
 
 idx1,idx2 = get_idx(i)
 # print(idx1, idx2)
@@ -34,6 +34,7 @@ try:
     model.save(f"checkpoint{idx2}")
     model.save_replay_buffer(f"rb{idx2}")
 except Exception as e:
+    print(str(e))
     print(f"Saving checkpoint{idx2}...")
     model.save(f"checkpoint{idx2}")
     model.save_replay_buffer(f"rb{idx2}")
