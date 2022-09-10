@@ -14,16 +14,26 @@ def action2index(action):
         [6, 7, 8]]
     return ACTION_TABLE[action[0]+1][action[1]+1]
 
-def index2action(index):
-    g = index % 3 - 1
-    index = index // 3
-    z = index % 3 - 1
-    index = index // 3
-    y = index % 3 - 1
-    index = index // 3
-    x = index % 3 - 1
-
-    return [x, y, z, g]
+def index2action(index, dims):
+    if dims >= 4:
+        g = index % 3 - 1
+        index = index // 3
+    if dims >= 3:
+        z = index % 3 - 1
+        index = index // 3
+    if dims >= 2:
+        y = index % 3 - 1
+        index = index // 3
+        x = index % 3 - 1
+    
+    if dims == 2:
+        return [x, y]
+    if dims == 3:
+        return [x, y, z]
+    if dims == 4:
+        return [x, y, z, g]
+    else:
+        return None
 
 def actionFromAlg(state):
     '''Returns an action based on an algorithmic model'''

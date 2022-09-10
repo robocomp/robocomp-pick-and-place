@@ -1,26 +1,13 @@
-import gym
 import math
 import random
-import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-from collections import namedtuple, deque
 from itertools import count
-from PIL import Image
 
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-import torchvision.transforms as T
-
-from EnvKinova_gym import EnvKinova_gym
+from EnvKinova import *
+from dqn_aux import *
+import data_from_dims as DFD
 import q_aux as QA
-
-N_DIMS = 4
-OBS_SIZE = 7
-
-env = EnvKinova_gym(N_DIMS)
 
 # set up matplotlib
 is_ipython = 'inline' in matplotlib.get_backend()
@@ -33,51 +20,6 @@ plt.ion()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
 
-Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
-
-
-class ReplayMemory(object):
-
-    def __init__(self, capacity):
-        self.memory = deque([],maxlen=capacity)
-
-    def push(self, *args):
-        self.memory.append(Transition(*args))
-
-    def sample(self, batch_size):
-        return random.sample(self.memory, batch_size)
-
-    def __len__(self):
-        return len(self.memory)
-
-
-class DQN(nn.Module):
-
-    def __init__(self, n_imputs, n_outputs):
-        super(DQN, self).__init__()
-        self.l1 = nn.Linear(n_imputs, 36)
-        self.l2 = nn.Linear(36, 25)
-        self.l3 = nn.Linear(25, 16)
-        self.l4 = nn.Linear(16, n_outputs)
-        self.s = nn.Softmax()
-
-    def forward(self, x):
-        # print("ENTRADA", x.shape, x)
-        x = torch.Tensor(x).to(device)
-        # print("TENSOR", x.shape)
-        x = F.relu(self.l1(x))
-        # print("L1", x.shape)
-        x = F.relu(self.l2(x))
-        # print("L2", x.shape)
-        x = F.relu(self.l3(x))
-        # print("L3", x.shape)
-        x = F.relu(self.l4(x))
-        # print("L4", x.shape)
-        x = self.s(x)
-        # print("S", x.shape)
-        return x
-
-
 BATCH_SIZE = 128
 GAMMA = 0.999
 EPS_START = 0.9
@@ -86,15 +28,22 @@ EPS_DECAY = 200
 TARGET_UPDATE = 10
 EPOCHS = 25000
 
-# Get number of actions from gym action space
-n_actions = env.action_space.n
-# print("NACTIONS :::: ", n_actions)
+##########################################################
+N_DIMS = 4                                               #
+                                                         #
+# Number of dimensions considered in the environment.    #
+# All the training process and the environment structure #
+# will depend onthis constant.                           #
+##########################################################
 
-policy_net = DQN(OBS_SIZE, n_actions).to(device)
-target_net = DQN(OBS_SIZE, n_actions).to(device)
+OBS_SIZE, N_ACTIONS, ACTION_FUNC, REWARD_FUNC = DFD.get_data(N_DIMS)
+# print("OBS", OBS_SIZE, "POS ACTIONS", N_ACTIONS)
+env = EnvKinova(OBS_SIZE, N_DIMS, REWARD_FUNC, ACTION_FUNC)
+
+policy_net = DQN(OBS_SIZE, N_ACTIONS, device).to(device)
+target_net = DQN(OBS_SIZE, N_ACTIONS, device).to(device)
 target_net.load_state_dict(policy_net.state_dict())
 target_net.eval()
-
 optimizer = optim.RMSprop(policy_net.parameters())
 memory = ReplayMemory(10000)
 
@@ -108,9 +57,13 @@ def select_action(state):
     steps_done += 1
     if sample > eps_threshold:
         with torch.no_grad():
-            return policy_net(state).argmax().view(1, 1)
+            act = policy_net(state).argmax().view(1, 1)
+            # print("net's action", act)
+            return act
     else:
-        return torch.tensor([[random.randrange(n_actions)]], device=device, dtype=torch.long)
+        act = torch.tensor([[random.randrange(N_ACTIONS)]], device=device, dtype=torch.long)
+        # print("random action", act)
+        return act
 
 
 episode_durations = []
@@ -175,35 +128,27 @@ def optimize_model():
         param.grad.data.clamp_(-1, 1)
     optimizer.step()
 
-
 for i_episode in range(EPOCHS):
     # Initialize the environment and state
     state = env.reset()
     for t in count():
         action = select_action(state)
 
-        # if isinstance(action, int):
-        #     action = S.action2index(action)
-
         # print("DQN TAKEN ACTION:", action.item, "DQN ACTION", QA.index2action(int(action.item())))
-        next_state, reward, done, info = env.step(QA.index2action(int(action.item())), t)
+        next_state, reward, done, info = env.step(QA.index2action(int(action.item()), N_DIMS), t)
         reward = torch.tensor([reward], device=device)
 
-        # Store the transition in memory
         # print("STATE", state, "NEXT STATE", next_state)
         memory.push(torch.Tensor(state), action, torch.Tensor(next_state), reward)
-
-        # Move to the next state
         state = next_state
 
-        # Perform one step of the optimization (on the policy network)
         optimize_model()
         if done:
             episode_durations.append(t + 1)
             acc_rewards.append(info["acc_reward"])
             plot_durations()
             break
-    # Update the target network, copying all weights and biases in DQN
+        
     if i_episode % TARGET_UPDATE == 0:
         target_net.load_state_dict(policy_net.state_dict())
 
@@ -211,5 +156,3 @@ print('TRAINING ENDED :)')
 env.close()
 plt.ioff()
 plt.show()
-
-# TODO Save ANNs

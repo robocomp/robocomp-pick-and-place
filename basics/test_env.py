@@ -1,7 +1,6 @@
-from EnvKinova_gym import EnvKinova_gym
+from EnvKinova import EnvKinova
 
-
-env = EnvKinova_gym()
+env = EnvKinova()
 # print(env.observation_space)
 
 print("BEGIN RESET")
